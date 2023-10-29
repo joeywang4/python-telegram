@@ -132,7 +132,7 @@ class Telegram:
             directory_name = hasher.hexdigest()
             files_directory = Path(tempfile.gettempdir()) / ".tdlib_files" / directory_name / "files"
 
-        self.files_directory = Path(database_directory)
+        self.files_directory = Path(files_directory)
 
         if not database_directory:
             hasher = hashlib.md5()
@@ -505,6 +505,46 @@ class Telegram:
             force_full: If true, the full instant view for the web page will be returned
         """
         data = {'@type': 'getWebPageInstantView', 'url': url, 'force_full': force_full}
+
+        return self._send_data(data)
+
+    def download_file(
+        self,
+        file_id: int,
+        priority: int = 1,
+        offset: int = 0,
+        limit: int = 0,
+        synchronous: bool = False
+    ) -> AsyncResult:
+        """
+        Downloads a file from the cloud.
+
+        Args:
+            file_id: Identifier of the file to download
+            priority: Priority of the download (1-32). Defaults to 1
+            offset: The starting position from which the file should be downloaded
+            limit: Number of bytes which should be downloaded
+            synchronous: If true, the download will be synchronous
+        """
+        data = {
+            '@type': 'downloadFile', 
+            'file_id': file_id, 
+            'priority': priority,
+            'offset': offset,
+            'limit': limit,
+            'synchronous': synchronous,
+        }
+
+        return self._send_data(data)
+
+    def get_file(self, file_id: int) -> AsyncResult:
+        """
+        Returns information about a file; this is an offline request.
+
+        Args:
+            file_id: Identifier of the file to get
+        """
+        data = {'@type': 'getFile', 'file_id': file_id}
 
         return self._send_data(data)
 
