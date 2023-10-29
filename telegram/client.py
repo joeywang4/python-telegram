@@ -66,6 +66,7 @@ class Telegram:
         library_path: Optional[str] = None,
         worker: Optional[Type[BaseWorker]] = None,
         files_directory: Optional[Union[str, Path]] = None,
+        database_directory: Optional[Union[str, Path]] = None,
         use_test_dc: bool = False,
         use_message_database: bool = True,
         device_model: str = 'python-telegram',
@@ -87,7 +88,8 @@ class Telegram:
             phone - your phone number
             library_path - you can change path to the compiled libtdjson library
             worker - worker to process updates
-            files_directory - directory for the tdlib's files (database, images, etc.)
+            files_directory - directory for the tdlib's files (messages, images, etc.)
+            database_directory - directory for the tdlib's DB (database, log files, etc.)
             use_test_dc - use test datacenter
             use_message_database
             use_secret_chats
@@ -128,9 +130,18 @@ class Telegram:
             str_to_encode: str = self.phone or self.bot_token  # type: ignore
             hasher.update(str_to_encode.encode('utf-8'))
             directory_name = hasher.hexdigest()
-            files_directory = Path(tempfile.gettempdir()) / ".tdlib_files" / directory_name
+            files_directory = Path(tempfile.gettempdir()) / ".tdlib_files" / directory_name / "files"
 
-        self.files_directory = Path(files_directory)
+        self.files_directory = Path(database_directory)
+
+        if not database_directory:
+            hasher = hashlib.md5()
+            str_to_encode: str = self.phone or self.bot_token  # type: ignore
+            hasher.update(str_to_encode.encode('utf-8'))
+            directory_name = hasher.hexdigest()
+            database_directory = Path(tempfile.gettempdir()) / ".tdlib_files" / directory_name / "database"
+
+        self.database_directory = Path(database_directory)
 
         self._authorized = False
         self._stopped = threading.Event()
@@ -723,7 +734,8 @@ class Telegram:
 
     def _set_initial_params(self) -> AsyncResult:
         logger.info(
-            'Setting tdlib initial params: files_dir=%s, test_dc=%s',
+            'Setting tdlib initial params: db_dir=%s, files_dir=%s, test_dc=%s',
+            self.database_directory,
             self.files_directory,
             self.use_test_dc,
         )
@@ -736,9 +748,9 @@ class Telegram:
             'system_version': self.system_version,
             'application_version': self.application_version,
             'system_language_code': self.system_language_code,
-            'database_directory': str(self.files_directory / "database"),
+            'database_directory': str(self.database_directory),
             'use_message_database': self.use_message_database,
-            'files_directory': str(self.files_directory / "files"),
+            'files_directory': str(self.files_directory),
             'use_secret_chats': self.use_secret_chats,
         }
         data: Dict[str, typing.Any] = {
